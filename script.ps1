@@ -8,14 +8,22 @@ $vmNumber = Read-Host -Prompt "NUMBER_OF_VM_TO_CLONE"
 $customerFile = "FILE_NAME"
 $futurVmName = "NAME_OF_VM{0}"
 
+
+$VCBaseUri = "https://host/rest/vcenter/vm"
+$SessionUri = "https://host/rest/com/vmware/cis/session"
+
+
+$Credential = Get-Credential
+
 $auth = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Credential.UserName+':'+$Credential.GetNetworkCredential().Password))
 $head = @{
   'Authorization' = "Basic $auth"
 }
 
-$r = Invoke-WebRequest -Uri "SESSION_URI" -Method Post -Headers $head
-$token = (ConvertFrom-Json $r.Content).value
+$token = (Invoke-RestMethod -Method Post -Headers $head -Uri $SessionUri).Value
 $session = @{'vmware-api-session-id' = $token}
+
+$vms = (Invoke-RestMethod -Uri $VCBaseUri -Headers $session -ContentType 'Application/json').Value
 
 Function Create {
     1..$vmNumber | foreach {
@@ -58,8 +66,3 @@ Start
 
 Write-Host "" -ForegroundColor Yellow
 Disconnect-VIServer -Confirm:$false
-
-#$r1 = Invoke-WebRequest -Uri "VM_LIST_URI" -Method Get -Headers $session
-#$vms = (ConvertFrom-Json $r1.Content).value
-#$vms
-
